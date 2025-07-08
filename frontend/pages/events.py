@@ -1,12 +1,14 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, date, timedelta
-from ..utils.api_client import (
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.api_client import (
     get_events,
     create_event,
-    get_event_details,
-    get_event_bookings,
-    get_event_available_tickets,
+    get_event,
+    get_available_tickets,
     get_event_revenue,
     get_venues
 )
@@ -143,7 +145,7 @@ def show_events_list():
             with col4:
                 if st.button(f"View Details", key=f"view_event_{event['id']}"):
                     st.session_state.selected_event_id = event['id']
-                    st.experimental_rerun()
+                    st.rerun()
             
             st.markdown("---")
     
@@ -245,7 +247,7 @@ def show_add_event_form():
                             st.success(f"✅ Event '{name}' created successfully!")
                             st.balloons()
                             # Clear form by rerunning
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("❌ Failed to create event. Please try again.")
 
@@ -280,7 +282,7 @@ def show_event_details():
         event_id = event_options[selected_event_name]
         
         # Get event details
-        event_details = get_event_details(event_id)
+        event_details = get_event(event_id)
         if not event_details:
             st.error("Failed to load event details.")
             return
@@ -300,13 +302,14 @@ def show_event_details():
             # Venue information
             st.markdown("### 🏟️ Venue Information")
             st.markdown(f"**Venue:** {event_details['venue_name']}")
-            st.markdown(f"**Address:** {event_details['venue_address']}")
+            if event_details.get('venue_address'):
+                st.markdown(f"**Address:** {event_details['venue_address']}")
             st.markdown(f"**City:** {event_details['venue_city']}")
             st.markdown(f"**Capacity:** {event_details['venue_capacity']:,} seats")
         
         with col2:
             # Get availability and revenue data
-            availability = get_event_available_tickets(event_id)
+            availability = get_available_tickets(event_id)
             revenue = get_event_revenue(event_id)
             
             if availability:
@@ -342,11 +345,12 @@ def show_event_details():
                     for status, amount in revenue['revenue_by_status'].items():
                         st.markdown(f"  - {status.title()}: ${amount:.2f}")
         
-        # Bookings for this event
+        # Bookings for this event (temporarily disabled)
         st.markdown("### 📋 Event Bookings")
-        event_bookings = get_event_bookings(event_id)
+        st.info("Event bookings feature is temporarily unavailable.")
+        # event_bookings = get_event_bookings(event_id)
         
-        if event_bookings:
+        if False:  # event_bookings:
             bookings_df = pd.DataFrame(event_bookings)
             
             # Summary stats
@@ -400,4 +404,4 @@ def show_event_details():
         if hasattr(st.session_state, 'selected_event_id'):
             if st.button("🔄 Clear Selection"):
                 del st.session_state.selected_event_id
-                st.experimental_rerun()
+                st.rerun()

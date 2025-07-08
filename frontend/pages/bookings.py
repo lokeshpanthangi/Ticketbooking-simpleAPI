@@ -1,10 +1,13 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, date, timedelta
-from ..utils.api_client import (
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.api_client import (
     get_bookings,
     create_booking,
-    get_booking_details,
+    get_booking,
     update_booking_status,
     cancel_booking,
     search_bookings,
@@ -157,20 +160,20 @@ def show_bookings_list():
                     if st.button("✅ Confirm", key=f"confirm_{booking['id']}"):
                         if update_booking_status(booking['id'], 'confirmed'):
                             st.success("Booking confirmed!")
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("Failed to confirm booking")
             
             with col5:
                 if st.button("View Details", key=f"view_{booking['id']}"):
                     st.session_state.selected_booking_id = booking['id']
-                    st.experimental_rerun()
+                    st.rerun()
                 
                 if booking['status'] != 'cancelled':
                     if st.button("❌ Cancel", key=f"cancel_{booking['id']}"):
                         if cancel_booking(booking['id']):
                             st.success("Booking cancelled!")
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("Failed to cancel booking")
             
@@ -307,7 +310,7 @@ def show_add_booking_form():
                         st.success(f"💰 Total Amount: **${result['total_price']:.2f}**")
                         st.balloons()
                         # Clear form by rerunning
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("❌ Failed to create booking. Please check availability and try again.")
 
@@ -410,7 +413,7 @@ def show_search_bookings():
                             with col4:
                                 if st.button("View Details", key=f"search_view_{booking['id']}"):
                                     st.session_state.selected_booking_id = booking['id']
-                                    st.experimental_rerun()
+                                    st.rerun()
                             
                             st.markdown("---")
                 else:
@@ -450,7 +453,7 @@ def show_booking_details():
         booking_id = booking_options[selected_booking_name]
         
         # Get booking details
-        booking_details = get_booking_details(booking_id)
+        booking_details = get_booking(booking_id)
         if not booking_details:
             st.error("Failed to load booking details.")
             return
@@ -482,11 +485,13 @@ def show_booking_details():
             if booking_details.get('event_description'):
                 st.markdown(f"**Description:** {booking_details['event_description']}")
             st.markdown(f"**Event Date:** {booking_details['event_date'][:16]}")
-            st.markdown(f"**Event Status:** {booking_details['event_status'].title()}")
+            if booking_details.get('event_status'):
+                st.markdown(f"**Event Status:** {booking_details['event_status'].title()}")
             
             st.markdown("### 🏟️ Venue Information")
             st.markdown(f"**Venue:** {booking_details['venue_name']}")
-            st.markdown(f"**Address:** {booking_details['venue_address']}")
+            if booking_details.get('venue_address'):
+                st.markdown(f"**Address:** {booking_details['venue_address']}")
             st.markdown(f"**City:** {booking_details['venue_city']}")
             
             st.markdown("### 🎟️ Ticket Information")
@@ -504,7 +509,7 @@ def show_booking_details():
                 if st.button("✅ Confirm Booking", use_container_width=True):
                     if update_booking_status(booking_id, 'confirmed'):
                         st.success("Booking confirmed successfully!")
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Failed to confirm booking")
         
@@ -513,7 +518,7 @@ def show_booking_details():
                 if st.button("⏸️ Set to Pending", use_container_width=True):
                     if update_booking_status(booking_id, 'pending'):
                         st.success("Booking status updated to pending!")
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Failed to update booking status")
         
@@ -522,7 +527,7 @@ def show_booking_details():
                 if st.button("❌ Cancel Booking", use_container_width=True):
                     if cancel_booking(booking_id):
                         st.success("Booking cancelled successfully!")
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Failed to cancel booking")
         
@@ -530,4 +535,4 @@ def show_booking_details():
         if hasattr(st.session_state, 'selected_booking_id'):
             if st.button("🔄 Clear Selection"):
                 del st.session_state.selected_booking_id
-                st.experimental_rerun()
+                st.rerun()

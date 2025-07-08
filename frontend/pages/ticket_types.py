@@ -1,13 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from ..utils.api_client import (
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.api_client import (
     get_ticket_types,
     create_ticket_type,
-    get_ticket_type_details,
-    get_ticket_type_bookings,
-    get_ticket_type_stats,
-    update_ticket_type
+    update_ticket_type,
+    get_ticket_type_stats
 )
 
 
@@ -85,11 +86,11 @@ def show_ticket_types_list():
             with col4:
                 if st.button(f"View Details", key=f"view_type_{ticket_type['id']}"):
                     st.session_state.selected_ticket_type_id = ticket_type['id']
-                    st.experimental_rerun()
+                    st.rerun()
                 
                 if st.button(f"Edit", key=f"edit_type_{ticket_type['id']}"):
                     st.session_state.edit_ticket_type_id = ticket_type['id']
-                    st.experimental_rerun()
+                    st.rerun()
             
             st.markdown("---")
     
@@ -210,7 +211,7 @@ def show_add_ticket_type_form():
                         st.success(f"✅ Ticket type '{final_name}' created successfully!")
                         st.balloons()
                         # Clear form by rerunning
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("❌ Failed to create ticket type. Please check if the name already exists.")
 
@@ -297,7 +298,7 @@ def show_edit_ticket_type_form():
                             # Clear edit selection
                             if hasattr(st.session_state, 'edit_ticket_type_id'):
                                 del st.session_state.edit_ticket_type_id
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("❌ Failed to update ticket type. Please check if the name conflicts with existing types.")
         
@@ -305,7 +306,7 @@ def show_edit_ticket_type_form():
         if hasattr(st.session_state, 'edit_ticket_type_id'):
             if st.button("🔄 Cancel Edit"):
                 del st.session_state.edit_ticket_type_id
-                st.experimental_rerun()
+                st.rerun()
 
 
 def show_ticket_type_details():
@@ -336,8 +337,15 @@ def show_ticket_type_details():
     if selected_type_name:
         type_id = type_options[selected_type_name]
         
-        # Get ticket type details
-        type_details = get_ticket_type_details(type_id)
+        # Get ticket type details - Feature temporarily unavailable
+        # type_details = get_ticket_type_details(type_id)
+        # if not type_details:
+        #     st.error("Failed to load ticket type details.")
+        #     return
+        
+        # Temporary workaround - get basic info from ticket types list
+        ticket_types = get_ticket_types()
+        type_details = next((t for t in ticket_types if t['id'] == type_id), None)
         if not type_details:
             st.error("Failed to load ticket type details.")
             return
@@ -387,9 +395,10 @@ def show_ticket_type_details():
                 st.markdown("### 📊 Performance Statistics")
                 st.info("No bookings yet for this ticket type.")
         
-        # Bookings for this ticket type
+        # Bookings for this ticket type - Feature temporarily unavailable
         st.markdown("### 📋 Recent Bookings")
-        type_bookings = get_ticket_type_bookings(type_id)
+        # type_bookings = get_ticket_type_bookings(type_id)
+        type_bookings = []  # Temporarily disabled
         
         if type_bookings:
             bookings_df = pd.DataFrame(type_bookings)
@@ -469,4 +478,4 @@ def show_ticket_type_details():
         if hasattr(st.session_state, 'selected_ticket_type_id'):
             if st.button("🔄 Clear Selection"):
                 del st.session_state.selected_ticket_type_id
-                st.experimental_rerun()
+                st.rerun()

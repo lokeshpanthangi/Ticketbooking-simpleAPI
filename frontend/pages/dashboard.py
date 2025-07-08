@@ -3,7 +3,10 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
-from ..utils.api_client import (
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.api_client import (
     get_stats,
     get_popular_events,
     get_busiest_venues,
@@ -217,4 +220,4 @@ def show_dashboard():
     
     # Auto-refresh option
     if st.button("🔄 Refresh Dashboard"):
-        st.experimental_rerun()
+        st.rerun()

@@ -10,7 +10,7 @@ from pages.venues import show_venues
 from pages.events import show_events
 from pages.bookings import show_bookings
 from pages.ticket_types import show_ticket_types
-from utils.api_client import health_check
+from utils.api_client import check_api_health, display_api_status, get_cache_stats
 
 
 def main():
@@ -89,12 +89,8 @@ def main():
     with st.sidebar:
         st.markdown("## 🧭 Navigation")
         
-        # Check backend connection
-        if health_check():
-            st.success("✅ Backend Connected")
-        else:
-            st.error("❌ Backend Disconnected")
-            st.warning("Please ensure the backend server is running on http://localhost:8000")
+        # Enhanced API status monitoring
+        display_api_status()
         
         # Navigation menu
         page = st.selectbox(

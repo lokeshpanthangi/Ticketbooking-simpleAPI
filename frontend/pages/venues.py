@@ -1,10 +1,12 @@
 import streamlit as st
 import pandas as pd
-from ..utils.api_client import (
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.api_client import (
     get_venues,
     create_venue,
-    get_venue_details,
-    get_venue_events,
+    get_venue,
     get_venue_occupancy
 )
 
@@ -56,7 +58,7 @@ def show_venues_list():
             with col3:
                 if st.button(f"View Details", key=f"view_{venue['id']}"):
                     st.session_state.selected_venue_id = venue['id']
-                    st.experimental_rerun()
+                    st.rerun()
             
             st.markdown("---")
     
@@ -132,7 +134,7 @@ def show_add_venue_form():
                         st.success(f"✅ Venue '{name}' created successfully!")
                         st.balloons()
                         # Clear form by rerunning
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("❌ Failed to create venue. Please check if the venue name already exists.")
 
@@ -167,7 +169,7 @@ def show_venue_details():
         venue_id = venue_options[selected_venue_name]
         
         # Get venue details
-        venue_details = get_venue_details(venue_id)
+        venue_details = get_venue(venue_id)
         if not venue_details:
             st.error("Failed to load venue details.")
             return
@@ -240,4 +242,4 @@ def show_venue_details():
         if hasattr(st.session_state, 'selected_venue_id'):
             if st.button("🔄 Clear Selection"):
                 del st.session_state.selected_venue_id
-                st.experimental_rerun()
+                st.rerun()

@@ -1,0 +1,347 @@
+# Ticket Booking System - Complete Development Prompt for Cursor AI
+
+<project_overview>
+Build a complete ticket booking system similar to BookMyShow or Ticketmaster. This system will manage events (concerts, movies, sports), venues (theaters, stadiums), different ticket types (VIP, Standard, Economy), and customer bookings. The system needs to handle relationships between these entities, track capacity, manage pricing, and provide comprehensive booking management.
+</project_overview>
+
+<technology_stack>
+- Backend: FastAPI (Python 3.8+) 
+- Database: SQLite with SQLAlchemy ORM
+- Frontend: Streamlit
+- Libraries: Pydantic, Uvicorn, Requests, Pandas, Plotly, python-multipart
+</technology_stack>
+
+<project_structure>
+Create the following folder structure:
+```
+ticket_booking_system/
+├── backend/
+│   ├── main.py
+│   ├── database.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── venue.py
+│   │   ├── event.py
+│   │   ├── ticket_type.py
+│   │   └── booking.py
+│   ├── schemas/
+│   │   ├── __init__.py
+│   │   ├── venue.py
+│   │   ├── event.py
+│   │   ├── ticket_type.py
+│   │   └── booking.py
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   ├── venues.py
+│   │   ├── events.py
+│   │   ├── ticket_types.py
+│   │   ├── bookings.py
+│   │   └── stats.py
+│   └── utils/
+│       ├── __init__.py
+│       └── helpers.py
+├── frontend/
+│   ├── main.py
+│   ├── pages/
+│   │   ├── dashboard.py
+│   │   ├── events.py
+│   │   ├── venues.py
+│   │   ├── bookings.py
+│   │   └── statistics.py
+│   └── utils/
+│       ├── __init__.py
+│       └── api_client.py
+├── booking_system.db (auto-generated)
+└── requirements.txt
+```
+</project_structure>
+
+<phase_1_setup>
+PHASE 1: Project Setup and Database Foundation
+
+1. Create requirements.txt with these dependencies:
+   - fastapi
+   - uvicorn
+   - sqlalchemy
+   - pydantic
+   - streamlit
+   - requests
+   - pandas
+   - plotly
+   - python-multipart
+
+2. Create backend/database.py:
+   - Set up SQLite database connection using SQLAlchemy
+   - Create database engine with sqlite:///booking_system.db
+   - Set up SessionLocal for database sessions
+   - Create get_db() dependency function for FastAPI
+   - Add Base class from sqlalchemy.ext.declarative
+
+3. Create backend/models/__init__.py:
+   - Import all models to make them available
+   - This ensures all tables are created when importing models
+
+4. Start backend/main.py:
+   - Initialize FastAPI app with title "Ticket Booking System"
+   - Add CORS middleware to allow Streamlit frontend connection
+   - Import and create all database tables on startup
+   - Add basic health check endpoint GET /health
+</phase_1_setup>
+
+<phase_2_database_models>
+PHASE 2: Create SQLAlchemy Database Models
+
+1. Create backend/models/venue.py:
+   - Venue table with columns: id (primary key), name (unique), address, city, capacity (integer), created_at (datetime)
+   - Add relationship to events (one venue can have many events)
+   - Add __repr__ method for better debugging
+
+2. Create backend/models/event.py:
+   - Event table with columns: id (primary key), name, description, event_date (datetime), venue_id (foreign key), status (default 'active'), created_at
+   - Add relationship to venue (many events belong to one venue)
+   - Add relationship to bookings (one event can have many bookings)
+   - Status should be enum: 'active', 'cancelled', 'completed'
+
+3. Create backend/models/ticket_type.py:
+   - TicketType table with columns: id (primary key), name, price (float), description, created_at
+   - Add relationship to bookings (one ticket type can have many bookings)
+   - Name should be enum: 'VIP', 'Standard', 'Economy'
+
+4. Create backend/models/booking.py:
+   - Booking table with columns: id (primary key), booking_code (unique), customer_name, customer_email, event_id (foreign key), ticket_type_id (foreign key), quantity (default 1), total_price (float), status (default 'pending'), booking_date
+   - Add relationships to event and ticket_type
+   - Status should be enum: 'pending', 'confirmed', 'cancelled'
+   - Add method to auto-generate booking_code (e.g., BK-YYYYMMDD-XXXX)
+</phase_2_database_models>
+
+<phase_3_pydantic_schemas>
+PHASE 3: Create Pydantic Schemas for API Validation
+
+1. Create backend/schemas/venue.py:
+   - VenueCreate: name, address, city, capacity (with validation: capacity > 0)
+   - VenueResponse: id, name, address, city, capacity, created_at
+   - VenueWithEvents: VenueResponse + list of events
+
+2. Create backend/schemas/event.py:
+   - EventCreate: name, description, event_date, venue_id (with validation: event_date must be future)
+   - EventResponse: id, name, description, event_date, venue_id, status, created_at
+   - EventWithDetails: EventResponse + venue info + booking count
+
+3. Create backend/schemas/ticket_type.py:
+   - TicketTypeCreate: name, price, description (with validation: price > 0)
+   - TicketTypeResponse: id, name, price, description, created_at
+
+4. Create backend/schemas/booking.py:
+   - BookingCreate: customer_name, customer_email, event_id, ticket_type_id, quantity
+   - BookingResponse: id, booking_code, customer_name, customer_email, event_id, ticket_type_id, quantity, total_price, status, booking_date
+   - BookingWithDetails: BookingResponse + event info + ticket_type info
+   - BookingStatusUpdate: status only
+</phase_3_pydantic_schemas>
+
+<phase_4_api_endpoints>
+PHASE 4: Implement FastAPI Routes
+
+1. Create backend/routes/venues.py:
+   - POST /venues: Create new venue, validate capacity > 0
+   - GET /venues: List all venues with event counts
+   - GET /venues/{venue_id}: Get specific venue details
+   - GET /venues/{venue_id}/events: Get all events at venue
+   - GET /venues/{venue_id}/occupancy: Calculate occupancy stats (total bookings vs capacity)
+
+2. Create backend/routes/events.py:
+   - POST /events: Create new event, validate venue exists and date is future
+   - GET /events: List all events with venue and booking info
+   - GET /events/{event_id}: Get specific event details
+   - GET /events/{event_id}/bookings: Get all bookings for event
+   - GET /events/{event_id}/available-tickets: Calculate available capacity
+   - GET /events/{event_id}/revenue: Calculate total revenue for event
+
+3. Create backend/routes/ticket_types.py:
+   - POST /ticket-types: Create new ticket type
+   - GET /ticket-types: List all ticket types
+   - GET /ticket-types/{type_id}: Get specific ticket type
+   - GET /ticket-types/{type_id}/bookings: Get all bookings for ticket type
+
+4. Create backend/routes/bookings.py:
+   - POST /bookings: Create booking (validate event exists, calculate total_price, check capacity)
+   - GET /bookings: List all bookings with event and ticket type details
+   - GET /bookings/{booking_id}: Get specific booking
+   - PUT /bookings/{booking_id}: Update booking details
+   - DELETE /bookings/{booking_id}: Cancel booking
+   - PATCH /bookings/{booking_id}/status: Update booking status only
+   - GET /bookings/search: Search bookings by event name, venue, ticket type
+
+5. Create backend/routes/stats.py:
+   - GET /booking-system/stats: Return total counts (events, venues, bookings, revenue)
+   - Include aggregated data like most popular events, busiest venues
+
+6. Update backend/main.py:
+   - Include all routers with appropriate prefixes
+   - Add error handling middleware
+   - Ensure database tables are created on startup
+</phase_4_api_endpoints>
+
+<phase_5_business_logic>
+PHASE 5: Add Business Logic and Validation
+
+1. Create backend/utils/helpers.py:
+   - generate_booking_code(): Create unique booking codes
+   - check_venue_capacity(): Validate booking doesn't exceed venue capacity
+   - calculate_total_price(): Calculate booking total (quantity × ticket_price)
+   - validate_booking_data(): Ensure event is active, venue exists, etc.
+
+2. Add capacity management:
+   - When creating bookings, check if venue has enough capacity
+   - Consider existing bookings for the same event
+   - Return appropriate error messages for overbooking
+
+3. Add proper error handling:
+   - Handle database connection errors
+   - Validate foreign key constraints
+   - Return meaningful error messages for API failures
+
+4. Add data validation:
+   - Email format validation for customer_email
+   - Date validation (event_date must be future)
+   - Enum validation for status fields
+</phase_5_business_logic>
+
+<phase_6_streamlit_frontend>
+PHASE 6: Create Streamlit Frontend
+
+1. Create frontend/utils/api_client.py:
+   - API_BASE_URL = "http://localhost:8000"
+   - Functions for all API calls: get_venues(), create_event(), get_bookings(), etc.
+   - Error handling for API requests
+   - Response formatting for Streamlit display
+
+2. Create frontend/pages/dashboard.py:
+   - Display key metrics (total events, venues, bookings, revenue)
+   - Show recent bookings table
+   - Display charts for booking trends
+   - Quick stats cards with st.metric()
+
+3. Create frontend/pages/venues.py:
+   - Form to create new venues (name, address, city, capacity)
+   - Display all venues in a table with event counts
+   - Show venue details and occupancy when selected
+
+4. Create frontend/pages/events.py:
+   - Form to create new events (name, description, date, venue selection)
+   - Display all events with venue info and booking counts
+   - Show available tickets for each event
+   - Event revenue calculations
+
+5. Create frontend/pages/bookings.py:
+   - Form to create new bookings with dropdowns for events and ticket types
+   - Display all bookings with customer details
+   - Update booking status functionality
+   - Search and filter bookings
+
+6. Create frontend/pages/statistics.py:
+   - Revenue charts by event and time period
+   - Venue occupancy charts
+   - Popular ticket types analysis
+   - Booking status distribution
+   - Export functionality for reports
+
+7. Create frontend/main.py:
+   - Multi-page app setup with st.set_page_config()
+   - Navigation sidebar with page selection
+   - Import and call appropriate page functions
+   - Add app title and description
+</phase_6_streamlit_frontend>
+
+<phase_7_advanced_features>
+PHASE 7: Advanced Features and Polish
+
+1. Add search and filtering:
+   - Search bookings by customer name, event name, or booking code
+   - Filter events by date range, venue, or status
+   - Advanced search with multiple criteria
+
+2. Add data export:
+   - Export booking reports to CSV
+   - Generate revenue reports
+   - Customer booking history
+
+3. Add real-time updates:
+   - Auto-refresh data in Streamlit
+   - Show live availability updates
+   - Real-time capacity monitoring
+
+4. Add data validation and constraints:
+   - Prevent booking on past events
+   - Validate email formats
+   - Check for duplicate bookings
+
+5. Add sample data:
+   - Create script to populate database with sample venues, events, and bookings
+   - Add realistic test data for demonstration
+</phase_7_advanced_features>
+
+<testing_and_deployment>
+PHASE 8: Testing and Deployment Setup
+
+1. Create sample data script:
+   - Add 5-10 sample venues (theaters, stadiums, etc.)
+   - Add 15-20 sample events (concerts, movies, sports)
+   - Add 3 ticket types (VIP, Standard, Economy) with different prices
+   - Add 50+ sample bookings with various statuses
+
+2. Test all functionality:
+   - Test all CRUD operations
+   - Verify relationship queries work correctly
+   - Test capacity limits and validation
+   - Check error handling
+
+3. Add documentation:
+   - README.md with setup instructions
+   - API documentation
+   - User guide for the Streamlit interface
+
+4. Deployment preparation:
+   - Environment variables for database URL
+   - Docker setup (optional)
+   - Production configuration
+</testing_and_deployment>
+
+<specific_implementation_notes>
+Important Implementation Details:
+
+1. Database Relationships:
+   - Use SQLAlchemy relationship() with back_populates
+   - Add CASCADE options for proper deletion handling
+   - Use lazy loading for performance
+
+2. API Response Format:
+   - Always return consistent JSON structure
+   - Include proper HTTP status codes
+   - Add pagination for large datasets
+
+3. Streamlit UI Guidelines:
+   - Use st.columns() for layout
+   - Add loading spinners for API calls
+   - Use st.cache_data for performance
+   - Add proper error messages and success notifications
+
+4. Data Validation:
+   - Validate all inputs before database operations
+   - Check business rules (capacity limits, date constraints)
+   - Provide clear error messages to users
+
+5. Performance Considerations:
+   - Use database indexes on frequently queried fields
+   - Implement proper JOIN queries for related data
+   - Cache frequently accessed data in Streamlit
+</specific_implementation_notes>
+
+<running_instructions>
+To run the complete system:
+
+1. Install dependencies: pip install -r requirements.txt
+2. Start FastAPI backend: uvicorn backend.main:app --reload (runs on http://localhost:8000)
+3. Start Streamlit frontend: streamlit run frontend/main.py (runs on http://localhost:8501)
+4. Access the system through the Streamlit interface
+5. Use the API documentation at http://localhost:8000/docs for testing
+</running_instructions>
